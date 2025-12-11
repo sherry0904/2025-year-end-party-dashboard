@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Year-End Party Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Import Map for Vue -->
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+            }
+        }
+    </script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <!-- tsParticles -->
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+</head>
+
+<body>
+    <!-- Background Particles -->
+    <div id="tsparticles"></div>
+
+    <!-- Main App -->
+    <div id="app" v-cloak>
+        <div class="dashboard-grid">
+
+            <!-- Left Panel: Access Log -->
+            <section class="panel left-panel">
+                <div class="panel-header">
+                    <h2>ACCESS LOG</h2>
+                    <div class="decor-line"></div>
+                </div>
+                <div class="log-list">
+                    <transition-group name="list-slide-down" tag="ul">
+                        <li v-for="log in accessLog" :key="log.id" class="log-item">
+                            <span class="timestamp">[{{ log.time }}]</span>
+                            <span class="dept">{{ log.dept }}</span>
+                            <span class="separator">-</span>
+                            <span class="name">{{ log.name }}</span>
+                        </li>
+                    </transition-group>
+                </div>
+                <!-- Decorative Corners -->
+                <div class="corner top-left"></div>
+                <div class="corner top-right"></div>
+                <div class="corner bottom-left"></div>
+                <div class="corner bottom-right"></div>
+            </section>
+
+            <!-- Center Panel: Radar System -->
+            <section class="panel center-panel">
+                <div class="radar-container">
+                    <div class="radar-circle" :class="{ pulse: isPulsing }">
+                        <div class="radar-scan"></div>
+                        <div class="radar-content">
+                            <div class="label">CREW ONBOARD</div>
+                            <div class="count" ref="countRef">{{ animatedCount }}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Comm Channel -->
+            <section class="panel right-panel">
+                <div class="panel-header">
+                    <h2>INCOMING MESSAGES</h2>
+                    <div class="decor-line"></div>
+                </div>
+                <div class="wish-list">
+                    <transition-group name="list-slide-up" tag="div" class="wish-stack">
+                        <div v-for="wish in wishStack" :key="wish.id" class="wish-card">
+                            <div class="wish-header">
+                                <span class="wish-from">Anonymous Crew</span>
+                            </div>
+                            <div class="wish-body">
+                                {{ wish.message }}
+                            </div>
+                        </div>
+                    </transition-group>
+                </div>
+                <!-- Decorative Corners -->
+                <div class="corner top-left"></div>
+                <div class="corner top-right"></div>
+                <div class="corner bottom-left"></div>
+                <div class="corner bottom-right"></div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
