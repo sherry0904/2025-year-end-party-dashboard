@@ -94,34 +94,57 @@ body {
 /* Left Panel: Access Log */
 .log-list ul {
     list-style: none;
+    padding-right: 5px;
 }
 
 .log-item {
     display: flex;
     align-items: center;
-    padding: 10px 0;
+    padding: 12px 10px;
     border-bottom: 1px solid rgba(100, 255, 218, 0.1);
     font-size: 1rem;
     color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.1);
+    margin-bottom: 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.log-item:hover {
+    background: rgba(100, 255, 218, 0.05);
 }
 
 .log-item .timestamp {
     color: var(--accent-cyan);
-    margin-right: 10px;
+    margin-right: 12px;
+    font-family: var(--font-mono);
+    width: 60px; /* Fixed width for alignment */
+    flex-shrink: 0;
 }
 
 .log-item .dept {
     color: var(--text-secondary);
-}
-
-.log-item .separator {
-    margin: 0 8px;
+    font-size: 0.9rem;
+    background: rgba(10, 255, 0, 0.1);
     color: var(--accent-green);
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-right: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%; /* Prevent it from taking too much space */
+    flex-shrink: 1; /* Allow shrinking if needed */
 }
 
 .log-item .name {
     font-weight: bold;
-    text-shadow: 0 0 2px var(--text-primary);
+    color: var(--text-primary);
+    /* text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0; /* Name should stay visible if possible */
 }
 
 /* Center Panel: Radar */

@@ -50,7 +50,6 @@
                         <li v-for="log in accessLog" :key="log.id" class="log-item">
                             <span class="timestamp">[{{ log.time }}]</span>
                             <span class="dept">{{ log.dept }}</span>
-                            <span class="separator">-</span>
                             <span class="name">{{ log.name }}</span>
                         </li>
                     </transition-group>
@@ -85,7 +84,7 @@
                     <transition-group name="list-slide-up" tag="div" class="wish-stack">
                         <div v-for="wish in wishStack" :key="wish.id" class="wish-card">
                             <div class="wish-header">
-                                <span class="wish-from">Anonymous Crew</span>
+                                <span class="wish-from">{{ wish.title }}</span>
                             </div>
                             <div class="wish-body">
                                 {{ wish.message }}

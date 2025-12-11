@@ -3,50 +3,54 @@ import { createApp, ref, reactive, onMounted, nextTick, watch } from 'vue';
 const app = createApp({
     setup() {
         // --- State ---
-        const totalCount = ref(1240); // Start with a base number
-        const animatedCount = ref(1240);
+        const totalCount = ref(0);
+        const animatedCount = ref(0);
         const accessLog = ref([]);
         const wishStack = ref([]);
         const isPulsing = ref(false);
 
         // --- Mock Data ---
-        const mockDB = [
-            { name: 'Luffy', dept: 'Captain', message: 'I want meat!' },
-            { name: 'Zoro', dept: 'Combat', message: 'Where is the booze?' },
-            { name: 'Nami', dept: 'Navigation', message: 'Bonus for everyone!' },
-            { name: 'Usopp', dept: 'Sniper', message: 'I have 8000 followers!' },
-            { name: 'Sanji', dept: 'Kitchen', message: 'Ladies first <3' },
-            { name: 'Chopper', dept: 'Medical', message: 'Cotton candy please!' },
-            { name: 'Robin', dept: 'Intel', message: 'History is fascinating.' },
-            { name: 'Franky', dept: 'Engineering', message: 'SUPER!!!' },
-            { name: 'Brook', dept: 'Music', message: 'May I see your panties?' },
-            { name: 'Jinbe', dept: 'Helmsman', message: 'Honor above all.' },
-            { name: 'Shanks', dept: 'Red Hair', message: 'Let\'s party!' },
-            { name: 'Buggy', dept: 'Clown', message: 'I will be King!' },
-            { name: 'Law', dept: 'Heart', message: 'Room.' },
-            { name: 'Kid', dept: 'Magnet', message: 'Move over!' },
-            { name: 'Killer', dept: 'Magnet', message: 'Fafafa!' },
-            { name: 'Bege', dept: 'Fire Tank', message: 'Big family dinner.' },
-            { name: 'Bonney', dept: 'Jewelry', message: 'Pizza time!' },
-            { name: 'Drake', dept: 'Sword', message: 'Mission accepted.' },
-            { name: 'Hawkins', dept: 'Magic', message: 'Cards say 99% success.' },
-            { name: 'Apoo', dept: 'Music', message: 'Check it out!' },
-            { name: 'Ace', dept: 'Spade', message: 'Thanks for loving me.' },
-            { name: 'Sabo', dept: 'Rev', message: 'Dragon claw!' },
-            { name: 'Koala', dept: 'Rev', message: 'Hack, stop it.' },
-            { name: 'Dragon', dept: 'Rev', message: '...' },
-            { name: 'Garp', dept: 'Marine', message: 'Fist of Love!' },
-            { name: 'Koby', dept: 'Marine', message: 'I will be an Admiral!' },
-            { name: 'Helmeppo', dept: 'Marine', message: 'Wait for me!' },
-            { name: 'Smoker', dept: 'Marine', message: 'White Chase.' },
-            { name: 'Tashigi', dept: 'Marine', message: 'My glasses!' },
-            { name: 'Hancock', dept: 'Kuja', message: 'Luffy my love!' }
+        // Departments provided by user
+        const departments = [
+            '財務部', '資材部', '人力資源部', '營業部', 
+            '台灣行銷部', '行銷技術部', '工程部', 
+            'IA字型產品部', '外字產品暨專案部', '零售產品部', 
+            '品質保證部', '產品支援部', '字體生產部'
+        ];
+
+        // Sample Chinese names for realism
+        const firstNames = ['雅婷', '冠宇', '怡君', '宗翰', '佳穎', '家豪', '詩涵', '柏翰', '承恩', '宜庭', '禹安', '佩珊', '志豪', '郁婷', '俊宏', '欣儀', '偉倫', '心怡', '志偉', '雅雯'];
+        const lastNames = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊', '許', '鄭', '謝', '郭', '洪'];
+
+        const generateMockDB = (count) => {
+            const db = [];
+            for (let i = 0; i < count; i++) {
+                const dept = departments[Math.floor(Math.random() * departments.length)];
+                const name = lastNames[Math.floor(Math.random() * lastNames.length)] + firstNames[Math.floor(Math.random() * firstNames.length)];
+                db.push({
+                    name: name,
+                    dept: dept,
+                    message: 'Happy New Year!' // Messages are anonymous now anyway
+                });
+            }
+            return db;
+        };
+
+        const mockDB = generateMockDB(50);
+
+        // Fun titles for anonymous messages
+        const funTitles = [
+            '期待中大獎的船員', '剛吃飽的吃貨', '想要加薪的特務', '潛水中的觀察員', 
+            '來自未來的時空旅人', '謎樣的藏鏡人', '尾牙戰神', '為了紅包來的勇者',
+            '專業陪跑員', '快樂的喝水專員', '路過的絕地武士', '深海大鳳梨',
+            '正在發功的氣功師', '相信心誠則靈的信徒', '把老闆當偶像的粉絲', 
+            '剛剛中樂透(夢裡)的人', '準備大吃一頓的戰士', '隱藏在民間的高手'
         ];
 
         // --- Logic ---
         const handleNewCheckIn = (user) => {
             const now = new Date();
-            const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
             // Update Total Count
             const newCount = totalCount.value + 1;
@@ -55,7 +59,6 @@ const app = createApp({
                 value: newCount,
                 roundProps: "value",
                 onUpdate: () => {
-                    // Trigger pulse effect
                     isPulsing.value = true;
                     setTimeout(() => isPulsing.value = false, 500);
                 }
@@ -74,24 +77,31 @@ const app = createApp({
             }
 
             // Update Wish Stack (Add to bottom, keep max 5)
-            // Note: In the UI we want new ones to appear at the bottom and push up.
-            // But the requirement says "Stack pushes upwards", which usually means adding to the list.
-            // Let's add to the array.
+            // Assign a random fun title
+            const randomTitle = funTitles[Math.floor(Math.random() * funTitles.length)];
+            
             wishStack.value.push({
                 id: Date.now() + Math.random(),
-                name: user.name,
-                dept: user.dept,
+                title: randomTitle, // Use fun title instead of name
                 message: user.message
             });
             if (wishStack.value.length > 5) {
-                wishStack.value.shift(); // Remove the oldest (top visual if flex-direction is column-reverse)
+                wishStack.value.shift();
             }
         };
 
         const startSimulation = () => {
             setInterval(() => {
                 const randomIndex = Math.floor(Math.random() * mockDB.length);
-                handleNewCheckIn(mockDB[randomIndex]);
+                const randomUser = {
+                    ...mockDB[randomIndex],
+                    // Generate a new random message occasionally or just keep static
+                    message: [
+                        '新年快樂！', '大家辛苦了！', '中大獎！', '年終加倍！', '尾牙快樂！', 
+                        'Gogoro 是我的！', '祝公司生意興隆', '平安喜樂', '吃飽喝足', '紅包拿來'
+                    ][Math.floor(Math.random() * 10)]
+                };
+                handleNewCheckIn(randomUser);
             }, 3000);
         };
 
@@ -101,105 +111,23 @@ const app = createApp({
             tsParticles.load("tsparticles", {
                 fpsLimit: 60,
                 particles: {
-                    number: {
-                        value: 80,
-                        density: {
-                            enable: true,
-                            value_area: 800
-                        }
-                    },
-                    color: {
-                        value: "#64ffda"
-                    },
-                    shape: {
-                        type: "circle"
-                    },
-                    opacity: {
-                        value: 0.3,
-                        random: true,
-                        anim: {
-                            enable: true,
-                            speed: 1,
-                            opacity_min: 0.1,
-                            sync: false
-                        }
-                    },
-                    size: {
-                        value: 3,
-                        random: true,
-                        anim: {
-                            enable: false,
-                            speed: 40,
-                            size_min: 0.1,
-                            sync: false
-                        }
-                    },
-                    move: {
-                        enable: true,
-                        speed: 1,
-                        direction: "top",
-                        random: false,
-                        straight: false,
-                        out_mode: "out",
-                        attract: {
-                            enable: false,
-                            rotateX: 600,
-                            rotateY: 1200
-                        }
-                    }
+                    number: { value: 80, density: { enable: true, value_area: 800 } },
+                    color: { value: "#64ffda" },
+                    shape: { type: "circle" },
+                    opacity: { value: 0.3, random: true, anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false } },
+                    size: { value: 3, random: true, anim: { enable: false, speed: 40, size_min: 0.1, sync: false } },
+                    move: { enable: true, speed: 1, direction: "top", random: false, straight: false, out_mode: "out", attract: { enable: false, rotateX: 600, rotateY: 1200 } }
                 },
                 interactivity: {
                     detect_on: "canvas",
-                    events: {
-                        onhover: {
-                            enable: true,
-                            mode: "repulse"
-                        },
-                        onclick: {
-                            enable: true,
-                            mode: "push"
-                        },
-                        resize: true
-                    },
-                    modes: {
-                        grab: {
-                            distance: 400,
-                            line_linked: {
-                                opacity: 1
-                            }
-                        },
-                        bubble: {
-                            distance: 400,
-                            size: 40,
-                            duration: 2,
-                            opacity: 8,
-                            speed: 3
-                        },
-                        repulse: {
-                            distance: 100
-                        },
-                        push: {
-                            particles_nb: 4
-                        },
-                        remove: {
-                            particles_nb: 2
-                        }
-                    }
+                    events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
+                    modes: { grab: { distance: 400, line_linked: { opacity: 1 } }, bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 }, repulse: { distance: 100 }, push: { particles_nb: 4 }, remove: { particles_nb: 2 } }
                 },
                 retina_detect: true,
-                background: {
-                    color: "#020c1b",
-                    image: "",
-                    position: "50% 50%",
-                    repeat: "no-repeat",
-                    size: "cover"
-                }
+                background: { color: "#020c1b", image: "", position: "50% 50%", repeat: "no-repeat", size: "cover" }
             });
 
-            // Start Simulation
             startSimulation();
-            
-            // Initial population
             handleNewCheckIn(mockDB[0]);
         });
 
