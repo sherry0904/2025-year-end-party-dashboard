@@ -221,6 +221,34 @@ body {
     font-weight: 900;
     color: var(--text-primary);
     text-shadow: 0 0 20px var(--accent-cyan);
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.attendance-ratio {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(100, 255, 218, 0.2);
+    display: inline-block;
+}
+
+.attendance-ratio .current {
+    color: var(--accent-green);
+    font-weight: bold;
+}
+
+.attendance-ratio .divider {
+    color: var(--text-secondary);
+    margin: 0 5px;
+}
+
+.attendance-ratio .total {
+    color: var(--accent-cyan);
 }
 
 .pulse {
@@ -299,10 +327,236 @@ body {
 
 .list-slide-up-enter-from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(-20px); /* Newest comes from Top */
 }
 
 .list-slide-up-leave-to {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(20px); /* Oldest leaves to Bottom */
+}
+
+/* Admin Modal */
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 5, 16, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.admin-modal {
+    width: 90%;
+    height: 90%;
+    background: var(--glass-bg);
+    border: 2px solid var(--accent-cyan);
+    border-radius: 8px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 50px rgba(100, 255, 218, 0.2);
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--glass-border);
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.header-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.admin-header h2 {
+    font-family: var(--font-header);
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+}
+
+.admin-stats {
+    font-family: var(--font-header);
+    font-size: 1.2rem;
+}
+
+.stat-item.missing {
+    color: var(--text-secondary);
+}
+
+.stat-item.total {
+    color: var(--text-primary);
+}
+
+.stat-separator {
+    color: var(--accent-cyan);
+    margin: 0 10px;
+}
+
+/* Search Input */
+.admin-search {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--accent-cyan);
+    color: var(--text-primary);
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    width: 250px;
+}
+
+.admin-search:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+}
+
+/* Sort Controls */
+.sort-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.sort-btn {
+    background: transparent;
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: var(--font-header);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-btn:hover {
+    background: rgba(100, 255, 218, 0.1);
+}
+
+.sort-btn.active {
+    background: var(--accent-cyan);
+    color: var(--bg-color);
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+}
+
+/* Close Button */
+.close-btn {
+    background: transparent;
+    border: 2px solid var(--text-secondary);
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    transform: rotate(90deg);
+}
+
+/* Compact Grid */
+.roster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Wider for horizontal layout */
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 10px;
+    flex-grow: 1;
+}
+
+.roster-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.roster-card.arrived {
+    border-color: var(--accent-green);
+    background: rgba(10, 255, 0, 0.1);
+    box-shadow: 0 0 5px rgba(10, 255, 0, 0.1);
+}
+
+.roster-card.missing {
+    opacity: 0.5;
+    border-color: var(--text-secondary);
+}
+
+.card-left {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.roster-id {
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    min-width: 40px;
+}
+
+.roster-name {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.card-right {
+    text-align: right;
+}
+
+.roster-dept {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.roster-card.arrived .roster-dept {
+    color: var(--accent-green);
+    background: rgba(10, 255, 0, 0.1);
+}
+
+/* Scrollbar for Admin Modal */
+.roster-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.roster-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.roster-grid::-webkit-scrollbar-thumb {
+    background: var(--accent-cyan);
+    border-radius: 4px;
 }

@@ -69,6 +69,11 @@
                         <div class="radar-content">
                             <div class="label">CREW ONBOARD</div>
                             <div class="count" ref="countRef">{{ animatedCount }}</div>
+                            <div class="attendance-ratio">
+                                <span class="current">{{ totalCount }}</span>
+                                <span class="divider">/</span>
+                                <span class="total">{{ roster.length }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -100,6 +105,45 @@
             </section>
 
         </div>
+        <!-- Admin Roster Modal -->
+        <div v-if="showAdminModal" class="admin-modal-overlay">
+            <div class="admin-modal">
+                <div class="admin-header">
+                    <div class="header-left">
+                        <h2>ADMIN ROSTER STATUS</h2>
+                        <div class="admin-stats">
+                            <span class="stat-item missing">MISSING: {{ missingCount }}</span>
+                            <span class="stat-separator">/</span>
+                            <span class="stat-item total">TOTAL: {{ roster.length }}</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="sort-controls">
+                            <button class="sort-btn" :class="{ active: sortBy === 'dept' }"
+                                @click="sortBy = 'dept'">DEPT</button>
+                            <button class="sort-btn" :class="{ active: sortBy === 'id' }"
+                                @click="sortBy = 'id'">ID</button>
+                        </div>
+                        <input type="text" v-model="searchTerm" placeholder="Search Name/ID/Dept..."
+                            class="admin-search">
+                        <button class="close-btn" @click="closeAdminModal">X</button>
+                    </div>
+                </div>
+                <div class="roster-grid">
+                    <div v-for="emp in filteredRoster" :key="emp.id" class="roster-card"
+                        :class="{ 'arrived': processedIds.has(emp.id), 'missing': !processedIds.has(emp.id) }">
+                        <div class="card-left">
+                            <span class="roster-id">{{ emp.id }}</span>
+                            <span class="roster-name">{{ emp.name }}</span>
+                        </div>
+                        <div class="card-right">
+                            <span class="roster-dept">{{ emp.dept }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- App Logic -->

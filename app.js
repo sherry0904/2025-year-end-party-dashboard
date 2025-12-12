@@ -1,44 +1,62 @@
-import { createApp, ref, reactive, onMounted, nextTick, watch } from 'vue';
+import { createApp, ref, computed, onMounted, onUnmounted } from 'vue';
 
 const app = createApp({
     setup() {
+        // --- Configuration ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec'; // To be updated by user or config
+
         // --- State ---
         const totalCount = ref(0);
         const animatedCount = ref(0);
         const accessLog = ref([]);
         const wishStack = ref([]);
         const isPulsing = ref(false);
+        const roster = ref([]); // Full list of employees
+        const processedIds = ref(new Set()); // Track check-ins to avoid duplicates
+        const showAdminModal = ref(false);
+        const searchTerm = ref('');
+        const sortBy = ref('dept'); // 'dept' or 'id'
 
-        // --- Mock Data ---
-        // Departments provided by user
-        const departments = [
-            '財務部', '資材部', '人力資源部', '營業部', 
-            '台灣行銷部', '行銷技術部', '工程部', 
-            'IA字型產品部', '外字產品暨專案部', '零售產品部', 
-            '品質保證部', '產品支援部', '字體生產部'
-        ];
+        // Fun titles for anonymous messages (kept from previous feature)
+        // ...
 
-        // Sample Chinese names for realism
-        const firstNames = ['雅婷', '冠宇', '怡君', '宗翰', '佳穎', '家豪', '詩涵', '柏翰', '承恩', '宜庭', '禹安', '佩珊', '志豪', '郁婷', '俊宏', '欣儀', '偉倫', '心怡', '志偉', '雅雯'];
-        const lastNames = ['陳', '林', '黃', '張', '李', '王', '吳', '劉', '蔡', '楊', '許', '鄭', '謝', '郭', '洪'];
+        // --- Computed ---
+        const missingCount = computed(() => {
+            return roster.value.length - processedIds.value.size;
+        });
 
-        const generateMockDB = (count) => {
-            const db = [];
-            for (let i = 0; i < count; i++) {
-                const dept = departments[Math.floor(Math.random() * departments.length)];
-                const name = lastNames[Math.floor(Math.random() * lastNames.length)] + firstNames[Math.floor(Math.random() * firstNames.length)];
-                db.push({
-                    name: name,
-                    dept: dept,
-                    message: 'Happy New Year!' // Messages are anonymous now anyway
-                });
+        const filteredRoster = computed(() => {
+            let result = roster.value;
+
+            // 1. Filter
+            if (searchTerm.value.trim()) {
+                const term = searchTerm.value.toLowerCase();
+                result = result.filter(emp => 
+                    emp.name.toLowerCase().includes(term) || 
+                    String(emp.id).includes(term) || 
+                    emp.dept.toLowerCase().includes(term)
+                );
             }
-            return db;
+
+            // 2. Sort
+            return result.sort((a, b) => {
+                if (sortBy.value === 'dept') {
+                    // Sort by Dept, then by ID
+                    if (a.dept < b.dept) return -1;
+                    if (a.dept > b.dept) return 1;
+                    return a.id - b.id;
+                } else {
+                    // Sort by ID only
+                    return a.id - b.id;
+                }
+            });
+        });
+
+        // --- Logic ---
+        const closeAdminModal = () => {
+            showAdminModal.value = false;
+            searchTerm.value = ''; // Optional: clear search on close
         };
-
-        const mockDB = generateMockDB(50);
-
-        // Fun titles for anonymous messages
         const funTitles = [
             '期待中大獎的船員', '剛吃飽的吃貨', '想要加薪的特務', '潛水中的觀察員', 
             '來自未來的時空旅人', '謎樣的藏鏡人', '尾牙戰神', '為了紅包來的勇者',
@@ -59,66 +77,146 @@ const app = createApp({
         ];
 
         // --- Logic ---
-        const handleNewCheckIn = (user) => {
-            const now = new Date();
+        
+        // 1. Fetch Data from API
+        const fetchData = async () => {
+             if (API_URL === 'PLACEHOLDER_FOR_GAS_URL') {
+                console.warn('API URL is not set. Using mock data strictly for testing if needed, or just waiting.');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                processData(data);
+            } catch (error) {
+                console.error("API Fetch Error:", error);
+            }
+        };
+
+        // 2. Process Data (Diffing)
+        const processData = (data) => {
+            if (!data) return;
+
+            // Update Roster if changed (or initial load)
+            if (data.roster && data.roster.length > 0) {
+                 roster.value = data.roster;
+            }
+
+            // Create a Map for quick lookup: ID -> Employee Info
+            const rosterMap = new Map(roster.value.map(user => [String(user.id), user]));
+
+            // Process Check-ins
+            if (data.checkIns && Array.isArray(data.checkIns)) {
+                data.checkIns.forEach(checkIn => {
+                    const idStr = String(checkIn.id);
+                    
+                    if (!processedIds.value.has(idStr)) {
+                        // NEW EVENT FOUND
+                        processedIds.value.add(idStr);
+                        
+                        // Find user details
+                        const userInfo = rosterMap.get(idStr) || { name: 'Unknown', dept: 'Unknown' };
+                        
+                        // Handle formatting
+                        handleNewCheckIn(userInfo, checkIn);
+                    }
+                });
+            }
+        };
+
+        const allMessages = []; // Pool of all received messages
+        let lastActivityTime = Date.now();
+
+        const handleNewCheckIn = (userInfo, checkInRaw) => {
+            // Update Total Count (use processedIds size for accuracy)
+            const newCount = processedIds.value.size;
+            
+            // Animate only if count actually changed (it should have)
+            if (newCount !== totalCount.value) {
+                gsap.to(animatedCount, {
+                    duration: 1,
+                    value: newCount,
+                    roundProps: "value",
+                    onUpdate: () => {
+                        isPulsing.value = true;
+                        // Reset pulse
+                        setTimeout(() => isPulsing.value = false, 500); 
+                    }
+                });
+                totalCount.value = newCount;
+            }
+
+            // Helper to get time string
+            const now = new Date(); 
             const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-            // Update Total Count
-            const newCount = totalCount.value + 1;
-            gsap.to(animatedCount, {
-                duration: 1,
-                value: newCount,
-                roundProps: "value",
-                onUpdate: () => {
-                    isPulsing.value = true;
-                    setTimeout(() => isPulsing.value = false, 500);
-                }
-            });
-            totalCount.value = newCount;
-
-            // Update Access Log (Add to top, keep max 10)
+            // Update Access Log (Left Panel) - Newest Top
             accessLog.value.unshift({
-                id: Date.now() + Math.random(),
+                id: checkInRaw.id + '_' + Date.now(), // Unique key
                 time: timeString,
-                dept: user.dept,
-                name: user.name
+                dept: userInfo.dept,
+                name: userInfo.name
             });
             if (accessLog.value.length > 10) {
                 accessLog.value.pop();
             }
 
-            // Update Wish Stack (Add to bottom, keep max 5)
-            // Assign a random fun title
-            const randomTitle = funTitles[Math.floor(Math.random() * funTitles.length)];
-            
-            wishStack.value.push({
-                id: Date.now() + Math.random(),
-                title: randomTitle, // Use fun title instead of name
-                message: user.message
-            });
-            if (wishStack.value.length > 5) {
-                wishStack.value.shift();
+            // Update Wish Stack (Right Panel)
+            if (checkInRaw.message) {
+                // Assign a random fun title for the "Anonymous" effect
+                const randomTitle = funTitles[Math.floor(Math.random() * funTitles.length)];
+
+                const newWish = {
+                    id: checkInRaw.id + '_' + Date.now(),
+                    title: randomTitle, 
+                    message: checkInRaw.message
+                };
+
+                // Add to Pool
+                allMessages.push(newWish);
+
+                // Add to Display (Newest Top)
+                wishStack.value.unshift(newWish);
+                if (wishStack.value.length > 5) {
+                    wishStack.value.pop();
+                }
+
+                lastActivityTime = Date.now();
             }
         };
 
-        const startSimulation = () => {
-            setInterval(() => {
-                const randomIndex = Math.floor(Math.random() * mockDB.length);
-                const randomUser = {
-                    ...mockDB[randomIndex],
-                    // Generate a new random message occasionally or just keep static
-                    message: [
-                        '新年快樂！', '大家辛苦了！', '中大獎！', '年終加倍！', '尾牙快樂！', 
-                        'Gogoro 是我的！', '祝公司生意興隆', '平安喜樂', '吃飽喝足', '紅包拿來'
-                    ][Math.floor(Math.random() * 10)]
-                };
-                handleNewCheckIn(randomUser);
+        // Ambient Message Rotation
+        // If no new messages for a while, pick a random one from history to display
+        const startMessageRotation = () => {
+             setInterval(() => {
+                const now = Date.now();
+                // If idle for 3 seconds AND we have enough messages to rotate
+                if (now - lastActivityTime > 3000 && allMessages.length > 5) {
+                    const randomMsg = allMessages[Math.floor(Math.random() * allMessages.length)];
+                    
+                    // Create a visual copy with new ID to trigger transition
+                    const displayMsg = { ...randomMsg, id: 'replay_' + Date.now() };
+
+                    wishStack.value.unshift(displayMsg);
+                    if (wishStack.value.length > 5) {
+                        wishStack.value.pop();
+                    }
+                }
             }, 3000);
         };
 
         // --- Lifecycle ---
+        let pollingInterval;
+
+        const handleKeydown = (e) => {
+            if (e.key === 'm' || e.key === 'M') {
+                showAdminModal.value = !showAdminModal.value;
+            }
+        };
+
         onMounted(() => {
-            // Initialize tsParticles
+            // Initialize tsParticles (Same config as before)
             tsParticles.load("tsparticles", {
                 fpsLimit: 60,
                 particles: {
@@ -138,8 +236,22 @@ const app = createApp({
                 background: { color: "#020c1b", image: "", position: "50% 50%", repeat: "no-repeat", size: "cover" }
             });
 
-            startSimulation();
-            handleNewCheckIn(mockDB[0]);
+            // Start API Polling
+            pollingInterval = setInterval(fetchData, 3000);
+            
+            // Keyboard listener for Admin Modal
+            window.addEventListener('keydown', handleKeydown);
+
+            // Fetch immediately
+            fetchData();
+
+            // Start Message Rotation
+            startMessageRotation();
+        });
+
+        onUnmounted(() => {
+            if (pollingInterval) clearInterval(pollingInterval);
+            window.removeEventListener('keydown', handleKeydown);
         });
 
         return {
@@ -148,7 +260,14 @@ const app = createApp({
             accessLog,
             wishStack,
             isPulsing,
-            countRef: ref(null)
+            showAdminModal,
+            roster,
+            filteredRoster,
+            processedIds,
+            missingCount,
+            searchTerm,
+            sortBy,
+            closeAdminModal
         };
     }
 });
