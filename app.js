@@ -106,17 +106,30 @@ const app = createApp({
             // Create a Map for quick lookup: ID -> Employee Info
             const rosterMap = new Map(roster.value.map(user => [String(user.id), user]));
 
-            // Process Check-ins
-            if (data.checkIns && Array.isArray(data.checkIns)) {
+            // Process new check-ins
+            if (data.checkIns && data.checkIns.length > 0) {
+                // Sorter: Oldest -> Newest
+                // Because we use 'unshift' (add to top), we process oldest first, newest last.
+                // This ensures the Newest item ends up at the visual Top.
+                data.checkIns.sort((a, b) => {
+                    const tA = new Date(a.timestamp || 0).getTime();
+                    const tB = new Date(b.timestamp || 0).getTime();
+                    return tA - tB;
+                });
+
                 data.checkIns.forEach(checkIn => {
                     const idStr = String(checkIn.id);
-                    
                     if (!processedIds.value.has(idStr)) {
-                        // NEW EVENT FOUND
-                        processedIds.value.add(idStr);
-                        
-                        // Find user details
-                        const userInfo = rosterMap.get(idStr) || { name: 'Unknown', dept: 'Unknown' };
+                        processedIds.value.add(idStr); // Mark as processed
+
+                        // Find user details or use fallback for errors
+                        let userInfo = rosterMap.get(idStr);
+                        if (!userInfo) {
+                            userInfo = { 
+                                name: `查無此人 (${idStr})`, 
+                                dept: '異常' 
+                            };
+                        }
                         
                         // Handle formatting
                         handleNewCheckIn(userInfo, checkIn);
@@ -148,8 +161,11 @@ const app = createApp({
             }
 
             // Helper to get time string
-            const now = new Date(); 
-            const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            let dateObj = new Date();
+            if (checkInRaw.timestamp) {
+                dateObj = new Date(checkInRaw.timestamp);
+            }
+            const timeString = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 
             // Update Access Log (Left Panel) - Newest Top
             accessLog.value.unshift({
