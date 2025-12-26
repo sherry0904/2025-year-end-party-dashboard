@@ -142,7 +142,9 @@ const app = createApp({
             }
 
             try {
-                const response = await fetch(CONFIG.apiUrl);
+                // Add simple cache busting
+                const bustUrl = CONFIG.apiUrl + (CONFIG.apiUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                const response = await fetch(bustUrl);
                 const data = await response.json();
                 processData(data);
 
@@ -158,15 +160,41 @@ const app = createApp({
             if (!data) return;
 
             // Update Roster if changed (or initial load)
-            if (data.roster && data.roster.length > 0) {
+            // Allow update even if length is 0, in case people were deleted
+            if (data.roster) {
                  roster.value = data.roster;
             }
 
             // Create a Map for quick lookup: ID -> Employee Info
             const rosterMap = new Map(roster.value.map(user => [String(user.id), user]));
 
-            // Process new check-ins
-            if (data.checkIns && data.checkIns.length > 0) {
+            // Process Check-ins (Additions & Deletions)
+            if (data.checkIns) {
+                 // 1. Handle Deletions (Sync with current state)
+                 const currentRemoteIds = new Set(data.checkIns.map(c => String(c.id)));
+                 const toRemove = [];
+                 processedIds.value.forEach(id => {
+                     if (!currentRemoteIds.has(id)) {
+                         toRemove.push(id);
+                     }
+                 });
+
+                 if (toRemove.length > 0) {
+                     toRemove.forEach(id => processedIds.value.delete(id));
+                     
+                     // Direct update for deletions (snap to value, no pulse)
+                     const newCount = processedIds.value.size;
+                     totalCount.value = newCount;
+                     animatedCount.value = newCount;
+
+                     // If Reset (Cleared all), clear logs too
+                     if (newCount === 0) {
+                         accessLog.value = [];
+                         wishStack.value = [];
+                     }
+                 }
+
+                // 2. Handle Additions
                 // Sorter: Oldest -> Newest
                 // Because we use 'unshift' (add to top), we process oldest first, newest last.
                 // This ensures the Newest item ends up at the visual Top.
