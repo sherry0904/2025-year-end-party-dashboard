@@ -135,6 +135,7 @@
                             <button class="sort-btn" :class="{ active: sortBy === 'id' }"
                                 @click="sortBy = 'id'">ID</button>
                         </div>
+                        <button class="export-btn" @click="exportCSV">EXPORT CSV</button>
                         <input type="text" v-model="searchTerm" placeholder="Search Name/ID/Dept..."
                             class="admin-search">
                         <button class="close-btn" @click="closeAdminModal">X</button>

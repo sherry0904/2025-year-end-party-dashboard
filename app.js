@@ -1,14 +1,15 @@
 import { createApp, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
+// 系統設定
 const CONFIG = {
-    apiUrl: 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec', // Google Apps Script 資料讀取端點
-    pollingIntervalMs: 5000, // 呼叫 API 的間隔時間（毫秒）
-    countdownStepMs: 1000, // 倒數計時顯示的跳動頻率（毫秒）
-    messageRotationIntervalMs: 3000, // 沒有新留言時播放舊留言的間隔（毫秒）
-    messageIdleThresholdMs: 3000, // 判定「閒置」多久後可播放舊留言（毫秒）
-    maxLogEntries: 10, // Access Log 顯示的最大筆數
-    maxWishEntries: 5, // 最新留言區顯示的最大筆數
-    typewriterSpeedMs: 100 // 打字機速度（毫秒/字），數值越大越慢
+    apiUrl: 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec', // Google Apps Script API 網址
+    pollingIntervalMs: 5000,              // API 輪詢間隔（毫秒）
+    countdownStepMs: 1000,                // 倒數計時更新頻率（毫秒）
+    messageRotationIntervalMs: 3000,      // 留言輪播間隔（毫秒）
+    messageIdleThresholdMs: 3000,         // 判定閒置時間門檻（毫秒）
+    maxLogEntries: 10,                    // 報到記錄最大顯示筆數
+    maxWishEntries: 5,                    // 留言最大顯示筆數
+    typewriterSpeedMs: 100                // 打字機效果速度（毫秒/字）
 };
 
 const Typewriter = {
@@ -19,16 +20,21 @@ const Typewriter = {
     },
     setup(props) {
         const display = ref('');
+        let timer = null;
+        let startTimer = null;
+
         const startTyping = () => {
-             display.value = ''; // Reset
+             display.value = ''; 
+             if (timer) clearTimeout(timer);
+             if (startTimer) clearTimeout(startTimer);
+
              let i = 0;
-             // Delay to match CSS transition (500ms) + buffer
-             setTimeout(() => {
+             startTimer = setTimeout(() => {
                  const type = () => {
                      if (i < props.text.length) {
                          display.value += props.text.charAt(i);
                          i++;
-                         setTimeout(type, props.speed);
+                         timer = setTimeout(type, props.speed);
                      }
                  };
                  type();
@@ -39,9 +45,13 @@ const Typewriter = {
             startTyping();
         });
 
-        // Watch for changes just in case component is reused
         watch(() => props.text, () => {
             startTyping();
+        });
+
+        onUnmounted(() => {
+            if (timer) clearTimeout(timer);
+            if (startTimer) clearTimeout(startTimer);
         });
 
         return { display };
@@ -67,52 +77,14 @@ const app = createApp({
         const sortBy = ref('dept');
         const lastUpdateTime = ref('--:--:--');
         const secondsUntilNext = ref(Math.round(CONFIG.pollingIntervalMs / 1000));
+        let isFetching = false;
 
-        // Fun titles for anonymous messages (kept from previous feature)
-        // ...
 
         // --- Helpers ---
         const resetCountdown = () => {
             secondsUntilNext.value = Math.max(1, Math.round(CONFIG.pollingIntervalMs / 1000));
         };
 
-        // --- Computed ---
-        const missingCount = computed(() => {
-            return roster.value.length - processedIds.value.size;
-        });
-
-        const filteredRoster = computed(() => {
-            let result = roster.value;
-
-            // 1. Filter
-            if (searchTerm.value.trim()) {
-                const term = searchTerm.value.toLowerCase();
-                result = result.filter(emp => 
-                    emp.name.toLowerCase().includes(term) || 
-                    String(emp.id).includes(term) || 
-                    emp.dept.toLowerCase().includes(term)
-                );
-            }
-
-            // 2. Sort
-            return result.sort((a, b) => {
-                if (sortBy.value === 'dept') {
-                    // Sort by Dept, then by ID
-                    if (a.dept < b.dept) return -1;
-                    if (a.dept > b.dept) return 1;
-                    return a.id - b.id;
-                } else {
-                    // Sort by ID only
-                    return a.id - b.id;
-                }
-            });
-        });
-
-        // --- Logic ---
-        const closeAdminModal = () => {
-            showAdminModal.value = false;
-            searchTerm.value = ''; // Optional: clear search on close
-        };
         const funTitles = [
             '期待中大獎的船員', '剛吃飽的吃貨', '想要加薪的特務', '潛水中的觀察員', 
             '來自未來的時空旅人', '謎樣的藏鏡人', '尾牙戰神', '為了紅包來的勇者',
@@ -129,29 +101,107 @@ const app = createApp({
             '公司的吉祥物', '靠臉吃飯的(自稱)', '靠實力單身', '只是路過來吃飯的',
             '專業拍手專員', '氣氛組組長', '尾牙特攻隊', '抽獎箱的凝視者',
             '紅包磁鐵', '信用卡還款大隊長', '房貸消滅者', '貓派臥底',
-            '狗派間諜', '珍珠奶茶鑑賞家', '全勤獎(夢想中)得主', '來自深海的派大星'
+            '狗派間諜', '珍珠奶茶鑑賞家', '全勤獎(夢想中)得主', '來自深海的派大星',
+            '會議室佔領者', '便當菜色評論家', '摸魚界的傳奇', '加班費收割機',
+            '遲到藝術家', '早退先鋒', '請假達人', '病假專業戶',
+            '廁所長住客', '零食儲藏大師', '咖啡因依賴者', '手搖飲代言人',
+            '鬧鐘剋星', '週一厭世者', '週五狂喜者', '發薪日守望者',
+            '摸魚冠軍', '划水高手', '躺平專家', '內卷抵抗軍',
+            '股市觀察員', '虛擬貨幣信徒', '樂透研究員', '算命愛好者',
+            '星座專家', '塔羅牌大師', '紫微斗數玩家', '風水顧問',
+            '美食獵人', '吃播預備役', '宵夜戰士', '炸雞守護者',
+            '火鍋教教主', '燒肉信徒', '拉麵狂熱者', '壽司鑑賞家',
+            '甜點毀滅者', '手搖天王', '咖啡品鑑師', '茶道中人',
+            '追劇專業戶', '漫畫收藏家', '遊戲肝帝', '電競選手(自封)',
+            '社群潛水員', '網拍剁手黨', '直播觀眾', '迷因創作者',
+            '鍵盤俠', '留言戰神', '按讚狂魔', '分享達人',
+            '自拍天后', '修圖大師', '濾鏡收藏家', '網美候補',
+            '旅遊規劃師', '機票獵人', '飯店評論家', '景點達人',
+            '寵物奴才', '貓皇侍衛', '狗狗訓練師', '倉鼠管家'
         ];
+
+        // --- Computed ---
+        const missingCount = computed(() => {
+            return roster.value.length - processedIds.value.size;
+        });
+
+        const filteredRoster = computed(() => {
+            // Always create a shallow copy first to avoid mutating original roster.value via sort()
+            let result = [...roster.value];
+
+            // 1. Filter
+            if (searchTerm.value.trim()) {
+                const term = searchTerm.value.toLowerCase();
+                result = result.filter(emp => 
+                    emp.name.toLowerCase().includes(term) || 
+                    String(emp.id).includes(term) || 
+                    emp.dept.toLowerCase().includes(term)
+                );
+            }
+
+            // 2. Sort (Safe to sort 'result' now as it is a copy or new array from filter)
+            return result.sort((a, b) => {
+                if (sortBy.value === 'dept') {
+                    // Sort by Dept, then by ID
+                    if (a.dept < b.dept) return -1;
+                    if (a.dept > b.dept) return 1;
+                    return a.id - b.id;
+                } else {
+                    // Sort by ID only
+                    return a.id - b.id;
+                }
+            });
+        });
+
+        // --- Logic ---
+        const closeAdminModal = () => {
+            showAdminModal.value = false;
+            searchTerm.value = '';
+        };
+
+        const exportCSV = () => {
+            const headers = ['員工編號,姓名,部門,狀態'];
+            const rows = roster.value.map(emp => {
+                const idStr = String(emp.id);
+                const isCheckedIn = processedIds.value.has(idStr);
+                const status = isCheckedIn ? '已報到' : '未報到';
+                const safeName = emp.name.includes(',') ? `"${emp.name}"` : emp.name;
+                const safeDept = emp.dept.includes(',') ? `"${emp.dept}"` : emp.dept;
+                return `${idStr},${safeName},${safeDept},${status}`;
+            });
+            const csvContent = '\uFEFF' + [headers, ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toLocaleTimeString('zh-TW', { hour12: false }).replace(/:/g, '');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `attendance_list_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+
 
         // 1. Fetch Data from API
         const fetchData = async () => {
+            if (isFetching) return;
             resetCountdown();
-
-            if (CONFIG.apiUrl === 'PLACEHOLDER_FOR_GAS_URL') {
-                console.warn('API URL is not set. Using mock data strictly for testing if needed, or just waiting.');
-                return;
-            }
+            isFetching = true;
 
             try {
-                // Add simple cache busting
                 const bustUrl = CONFIG.apiUrl + (CONFIG.apiUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
                 const response = await fetch(bustUrl);
                 const data = await response.json();
                 processData(data);
-
+                
                 const now = new Date();
                 lastUpdateTime.value = now.toLocaleTimeString('zh-TW', { hour12: false });
             } catch (error) {
                 console.error('API Fetch Error:', error);
+            } finally {
+                isFetching = false;
             }
         };
 
@@ -159,18 +209,13 @@ const app = createApp({
         const processData = (data) => {
             if (!data) return;
 
-            // Update Roster if changed (or initial load)
-            // Allow update even if length is 0, in case people were deleted
             if (data.roster) {
                  roster.value = data.roster;
             }
 
-            // Create a Map for quick lookup: ID -> Employee Info
             const rosterMap = new Map(roster.value.map(user => [String(user.id), user]));
 
-            // Process Check-ins (Additions & Deletions)
             if (data.checkIns) {
-                 // 1. Handle Deletions (Sync with current state)
                  const currentRemoteIds = new Set(data.checkIns.map(c => String(c.id)));
                  const toRemove = [];
                  processedIds.value.forEach(id => {
@@ -181,23 +226,16 @@ const app = createApp({
 
                  if (toRemove.length > 0) {
                      toRemove.forEach(id => processedIds.value.delete(id));
-                     
-                     // Direct update for deletions (snap to value, no pulse)
                      const newCount = processedIds.value.size;
                      totalCount.value = newCount;
                      animatedCount.value = newCount;
 
-                     // If Reset (Cleared all), clear logs too
                      if (newCount === 0) {
                          accessLog.value = [];
                          wishStack.value = [];
                      }
                  }
 
-                // 2. Handle Additions
-                // Sorter: Oldest -> Newest
-                // Because we use 'unshift' (add to top), we process oldest first, newest last.
-                // This ensures the Newest item ends up at the visual Top.
                 data.checkIns.sort((a, b) => {
                     const tA = new Date(a.timestamp || 0).getTime();
                     const tB = new Date(b.timestamp || 0).getTime();
@@ -207,9 +245,7 @@ const app = createApp({
                 data.checkIns.forEach(checkIn => {
                     const idStr = String(checkIn.id);
                     if (!processedIds.value.has(idStr)) {
-                        processedIds.value.add(idStr); // Mark as processed
-
-                        // Find user details or use fallback for errors
+                        processedIds.value.add(idStr); 
                         let userInfo = rosterMap.get(idStr);
                         if (!userInfo) {
                             userInfo = { 
@@ -217,8 +253,6 @@ const app = createApp({
                                 dept: '異常' 
                             };
                         }
-                        
-                        // Handle formatting
                         handleNewCheckIn(userInfo, checkIn);
                     }
                 });
@@ -226,13 +260,11 @@ const app = createApp({
         };
 
         const allMessages = []; // Pool of all received messages
+        const MAX_HISTORY_MESSAGES = 200; // Cap to prevent memory leak
         let lastActivityTime = Date.now();
 
         const handleNewCheckIn = (userInfo, checkInRaw) => {
-            // Update Total Count (use processedIds size for accuracy)
             const newCount = processedIds.value.size;
-            
-            // Animate only if count actually changed (it should have)
             if (newCount !== totalCount.value) {
                 gsap.to(animatedCount, {
                     duration: 1,
@@ -240,23 +272,20 @@ const app = createApp({
                     roundProps: "value",
                     onUpdate: () => {
                         isPulsing.value = true;
-                        // Reset pulse
                         setTimeout(() => isPulsing.value = false, 500); 
                     }
                 });
                 totalCount.value = newCount;
             }
 
-            // Helper to get time string
             let dateObj = new Date();
             if (checkInRaw.timestamp) {
                 dateObj = new Date(checkInRaw.timestamp);
             }
             const timeString = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 
-            // Update Access Log (Left Panel) - Newest Top
             accessLog.value.unshift({
-                id: checkInRaw.id + '_' + Date.now(), // Unique key
+                id: checkInRaw.id + '_' + Date.now(), 
                 time: timeString,
                 dept: userInfo.dept,
                 name: userInfo.name
@@ -265,42 +294,41 @@ const app = createApp({
                 accessLog.value.pop();
             }
 
-            // Update Wish Stack (Right Panel)
             if (checkInRaw.message) {
-                // Assign a random fun title for the "Anonymous" effect
                 const randomTitle = funTitles[Math.floor(Math.random() * funTitles.length)];
-
                 const newWish = {
                     id: checkInRaw.id + '_' + Date.now(),
                     title: randomTitle, 
                     message: checkInRaw.message
                 };
-
-                // Add to Pool
                 allMessages.push(newWish);
-
-                // Add to Display (Newest Top)
+                if (allMessages.length > MAX_HISTORY_MESSAGES) {
+                    allMessages.shift();
+                }
+                
                 wishStack.value.unshift(newWish);
                 if (wishStack.value.length > CONFIG.maxWishEntries) {
                     wishStack.value.pop();
                 }
-
                 lastActivityTime = Date.now();
             }
         };
 
-        // Ambient Message Rotation
-        // If no new messages for a while, pick a random one from history to display
         const startMessageRotation = () => {
             return setInterval(() => {
                 const now = Date.now();
-                // If idle for 3 seconds AND we have enough messages to rotate
                 if (now - lastActivityTime > CONFIG.messageIdleThresholdMs && allMessages.length > CONFIG.maxWishEntries) {
-                    const randomMsg = allMessages[Math.floor(Math.random() * allMessages.length)];
-                    
-                    // Create a visual copy with new ID to trigger transition
-                    const displayMsg = { ...randomMsg, id: 'replay_' + Date.now() };
+                    // Get messages currently displayed in wishStack (by actual message content)
+                    const displayedMessages = new Set(wishStack.value.map(w => w.message));
 
+                    // Filter messages that are NOT currently displayed (by content)
+                    const unseenMessages = allMessages.filter(msg => !displayedMessages.has(msg.message));
+
+                    // If we have unseen messages, prioritize them. Otherwise, use all messages.
+                    const candidatePool = unseenMessages.length > 0 ? unseenMessages : allMessages;
+                    
+                    const randomMsg = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+                    const displayMsg = { ...randomMsg, id: 'replay_' + Date.now() };
                     wishStack.value.unshift(displayMsg);
                     if (wishStack.value.length > CONFIG.maxWishEntries) {
                         wishStack.value.pop();
@@ -309,19 +337,18 @@ const app = createApp({
             }, CONFIG.messageRotationIntervalMs);
         };
 
-        // --- Lifecycle ---
         let pollingInterval;
         let countdownInterval;
         let messageRotationInterval;
 
         const handleKeydown = (e) => {
+            // M for Admin Modal
             if (e.key === 'm' || e.key === 'M') {
                 showAdminModal.value = !showAdminModal.value;
             }
         };
 
         onMounted(() => {
-            // Initialize tsParticles (Same config as before)
             tsParticles.load("tsparticles", {
                 fpsLimit: 60,
                 particles: {
@@ -341,7 +368,6 @@ const app = createApp({
                 background: { color: "#020c1b", image: "", position: "50% 50%", repeat: "no-repeat", size: "cover" }
             });
 
-            // Start API Polling
             pollingInterval = setInterval(fetchData, CONFIG.pollingIntervalMs);
             countdownInterval = setInterval(() => {
                 if (secondsUntilNext.value > 0) {
@@ -349,13 +375,8 @@ const app = createApp({
                 }
             }, CONFIG.countdownStepMs);
             
-            // Keyboard listener for Admin Modal
             window.addEventListener('keydown', handleKeydown);
-
-            // Fetch immediately
             fetchData();
-
-            // Start Message Rotation
             messageRotationInterval = startMessageRotation();
         });
 
@@ -380,6 +401,7 @@ const app = createApp({
             searchTerm,
             sortBy,
             closeAdminModal,
+            exportCSV,
             lastUpdateTime,
             secondsUntilNext
         };
