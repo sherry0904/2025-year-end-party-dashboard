@@ -29,6 +29,9 @@
 
     <!-- tsParticles -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -135,7 +138,7 @@
                             <button class="sort-btn" :class="{ active: sortBy === 'id' }"
                                 @click="sortBy = 'id'">ID</button>
                         </div>
-                        <button class="export-btn" @click="exportCSV">EXPORT CSV</button>
+                        <button class="export-btn" @click="exportExcel">匯出 EXCEL</button>
                         <input type="text" v-model="searchTerm" placeholder="Search Name/ID/Dept..."
                             class="admin-search">
                         <button class="close-btn" @click="closeAdminModal">X</button>

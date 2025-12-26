@@ -159,27 +159,75 @@ const app = createApp({
             searchTerm.value = '';
         };
 
-        const exportCSV = () => {
-            const headers = ['員工編號,姓名,部門,狀態'];
-            const rows = roster.value.map(emp => {
+        const exportExcel = () => {
+            // 準備資料
+            const data = [
+                ['員工編號', '姓名', '部門', '狀態']
+            ];
+
+            roster.value.forEach(emp => {
                 const idStr = String(emp.id);
                 const isCheckedIn = processedIds.value.has(idStr);
                 const status = isCheckedIn ? '已報到' : '未報到';
-                const safeName = emp.name.includes(',') ? `"${emp.name}"` : emp.name;
-                const safeDept = emp.dept.includes(',') ? `"${emp.dept}"` : emp.dept;
-                return `${idStr},${safeName},${safeDept},${status}`;
+                data.push([idStr, emp.name, emp.dept, status]);
             });
-            const csvContent = '\uFEFF' + [headers, ...rows].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            const timestamp = new Date().toLocaleTimeString('zh-TW', { hour12: false }).replace(/:/g, '');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `attendance_list_${timestamp}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+
+            // 建立工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // 設定欄位寬度
+            ws['!cols'] = [
+                { wch: 12 },  // 員工編號
+                { wch: 15 },  // 姓名
+                { wch: 20 },  // 部門
+                { wch: 10 }   // 狀態
+            ];
+
+            // 為每一行加上顏色
+            roster.value.forEach((emp, index) => {
+                const rowNum = index + 2; // +2 因為有標題列，且從1開始計數
+                const idStr = String(emp.id);
+                const isCheckedIn = processedIds.value.has(idStr);
+
+                // 設定整列的背景顏色
+                const fillColor = isCheckedIn 
+                    ? { fgColor: { rgb: "C6EFCE" } }  // 淺綠色 (已報到)
+                    : { fgColor: { rgb: "FFC7CE" } }; // 淺紅色 (未報到)
+
+                const fontColor = isCheckedIn
+                    ? { color: { rgb: "006100" } }    // 深綠色字 (已報到)
+                    : { color: { rgb: "9C0006" } };   // 深紅色字 (未報到)
+
+                // 為這一行的每個儲存格設定樣式
+                ['A', 'B', 'C', 'D'].forEach(col => {
+                    const cellRef = `${col}${rowNum}`;
+                    if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+                    ws[cellRef].s = {
+                        fill: fillColor,
+                        font: fontColor,
+                        alignment: { vertical: 'center', horizontal: 'left' }
+                    };
+                });
+            });
+
+            // 標題列樣式
+            ['A1', 'B1', 'C1', 'D1'].forEach(cellRef => {
+                if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+                ws[cellRef].s = {
+                    fill: { fgColor: { rgb: "4472C4" } },  // 藍色背景
+                    font: { color: { rgb: "FFFFFF" }, bold: true },  // 白色粗體字
+                    alignment: { vertical: 'center', horizontal: 'center' }
+                };
+            });
+
+            // 建立工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '出席名單');
+
+            // 匯出檔案
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+            XLSX.writeFile(wb, `attendance_list_${timestamp}.xlsx`);
         };
 
 
@@ -401,7 +449,7 @@ const app = createApp({
             searchTerm,
             sortBy,
             closeAdminModal,
-            exportCSV,
+            exportExcel,
             lastUpdateTime,
             secondsUntilNext
         };
