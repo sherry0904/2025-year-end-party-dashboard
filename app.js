@@ -1,24 +1,80 @@
-import { createApp, ref, computed, onMounted, onUnmounted } from 'vue';
+import { createApp, ref, computed, onMounted, onUnmounted, watch } from 'vue';
+
+const CONFIG = {
+    apiUrl: 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec', // Google Apps Script 資料讀取端點
+    pollingIntervalMs: 5000, // 呼叫 API 的間隔時間（毫秒）
+    countdownStepMs: 1000, // 倒數計時顯示的跳動頻率（毫秒）
+    messageRotationIntervalMs: 3000, // 沒有新留言時播放舊留言的間隔（毫秒）
+    messageIdleThresholdMs: 3000, // 判定「閒置」多久後可播放舊留言（毫秒）
+    maxLogEntries: 10, // Access Log 顯示的最大筆數
+    maxWishEntries: 5, // 最新留言區顯示的最大筆數
+    typewriterSpeedMs: 100 // 打字機速度（毫秒/字），數值越大越慢
+};
+
+const Typewriter = {
+    props: {
+        text: { type: String, required: true },
+        speed: { type: Number, default: CONFIG.typewriterSpeedMs },
+        showCursor: { type: Boolean, default: false }
+    },
+    setup(props) {
+        const display = ref('');
+        const startTyping = () => {
+             display.value = ''; // Reset
+             let i = 0;
+             // Delay to match CSS transition (500ms) + buffer
+             setTimeout(() => {
+                 const type = () => {
+                     if (i < props.text.length) {
+                         display.value += props.text.charAt(i);
+                         i++;
+                         setTimeout(type, props.speed);
+                     }
+                 };
+                 type();
+             }, 600);
+        };
+
+        onMounted(() => {
+            startTyping();
+        });
+
+        // Watch for changes just in case component is reused
+        watch(() => props.text, () => {
+            startTyping();
+        });
+
+        return { display };
+    },
+    template: `<span class="typewriter-text">{{ display }}<span v-if="showCursor" class="typewriter-cursor">▋</span></span>`
+};
 
 const app = createApp({
+    components: {
+        'typewriter': Typewriter
+    },
     setup() {
-        // --- Configuration ---
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec'; // To be updated by user or config
-
         // --- State ---
         const totalCount = ref(0);
         const animatedCount = ref(0);
         const accessLog = ref([]);
         const wishStack = ref([]);
         const isPulsing = ref(false);
-        const roster = ref([]); // Full list of employees
-        const processedIds = ref(new Set()); // Track check-ins to avoid duplicates
+        const roster = ref([]);
+        const processedIds = ref(new Set());
         const showAdminModal = ref(false);
         const searchTerm = ref('');
-        const sortBy = ref('dept'); // 'dept' or 'id'
+        const sortBy = ref('dept');
+        const lastUpdateTime = ref('--:--:--');
+        const secondsUntilNext = ref(Math.round(CONFIG.pollingIntervalMs / 1000));
 
         // Fun titles for anonymous messages (kept from previous feature)
         // ...
+
+        // --- Helpers ---
+        const resetCountdown = () => {
+            secondsUntilNext.value = Math.max(1, Math.round(CONFIG.pollingIntervalMs / 1000));
+        };
 
         // --- Computed ---
         const missingCount = computed(() => {
@@ -76,21 +132,24 @@ const app = createApp({
             '狗派間諜', '珍珠奶茶鑑賞家', '全勤獎(夢想中)得主', '來自深海的派大星'
         ];
 
-        // --- Logic ---
-        
         // 1. Fetch Data from API
         const fetchData = async () => {
-             if (API_URL === 'PLACEHOLDER_FOR_GAS_URL') {
+            resetCountdown();
+
+            if (CONFIG.apiUrl === 'PLACEHOLDER_FOR_GAS_URL') {
                 console.warn('API URL is not set. Using mock data strictly for testing if needed, or just waiting.');
                 return;
             }
 
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(CONFIG.apiUrl);
                 const data = await response.json();
                 processData(data);
+
+                const now = new Date();
+                lastUpdateTime.value = now.toLocaleTimeString('zh-TW', { hour12: false });
             } catch (error) {
-                console.error("API Fetch Error:", error);
+                console.error('API Fetch Error:', error);
             }
         };
 
@@ -174,7 +233,7 @@ const app = createApp({
                 dept: userInfo.dept,
                 name: userInfo.name
             });
-            if (accessLog.value.length > 10) {
+            if (accessLog.value.length > CONFIG.maxLogEntries) {
                 accessLog.value.pop();
             }
 
@@ -194,7 +253,7 @@ const app = createApp({
 
                 // Add to Display (Newest Top)
                 wishStack.value.unshift(newWish);
-                if (wishStack.value.length > 5) {
+                if (wishStack.value.length > CONFIG.maxWishEntries) {
                     wishStack.value.pop();
                 }
 
@@ -205,25 +264,27 @@ const app = createApp({
         // Ambient Message Rotation
         // If no new messages for a while, pick a random one from history to display
         const startMessageRotation = () => {
-             setInterval(() => {
+            return setInterval(() => {
                 const now = Date.now();
                 // If idle for 3 seconds AND we have enough messages to rotate
-                if (now - lastActivityTime > 3000 && allMessages.length > 5) {
+                if (now - lastActivityTime > CONFIG.messageIdleThresholdMs && allMessages.length > CONFIG.maxWishEntries) {
                     const randomMsg = allMessages[Math.floor(Math.random() * allMessages.length)];
                     
                     // Create a visual copy with new ID to trigger transition
                     const displayMsg = { ...randomMsg, id: 'replay_' + Date.now() };
 
                     wishStack.value.unshift(displayMsg);
-                    if (wishStack.value.length > 5) {
+                    if (wishStack.value.length > CONFIG.maxWishEntries) {
                         wishStack.value.pop();
                     }
                 }
-            }, 3000);
+            }, CONFIG.messageRotationIntervalMs);
         };
 
         // --- Lifecycle ---
         let pollingInterval;
+        let countdownInterval;
+        let messageRotationInterval;
 
         const handleKeydown = (e) => {
             if (e.key === 'm' || e.key === 'M') {
@@ -253,7 +314,12 @@ const app = createApp({
             });
 
             // Start API Polling
-            pollingInterval = setInterval(fetchData, 3000);
+            pollingInterval = setInterval(fetchData, CONFIG.pollingIntervalMs);
+            countdownInterval = setInterval(() => {
+                if (secondsUntilNext.value > 0) {
+                    secondsUntilNext.value -= 1;
+                }
+            }, CONFIG.countdownStepMs);
             
             // Keyboard listener for Admin Modal
             window.addEventListener('keydown', handleKeydown);
@@ -262,11 +328,13 @@ const app = createApp({
             fetchData();
 
             // Start Message Rotation
-            startMessageRotation();
+            messageRotationInterval = startMessageRotation();
         });
 
         onUnmounted(() => {
             if (pollingInterval) clearInterval(pollingInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (messageRotationInterval) clearInterval(messageRotationInterval);
             window.removeEventListener('keydown', handleKeydown);
         });
 
@@ -283,7 +351,9 @@ const app = createApp({
             missingCount,
             searchTerm,
             sortBy,
-            closeAdminModal
+            closeAdminModal,
+            lastUpdateTime,
+            secondsUntilNext
         };
     }
 });

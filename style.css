@@ -42,6 +42,70 @@ body {
     padding: 20px;
 }
 
+
+
+.update-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Reduced gap since we have divider */
+    padding: 8px 25px; /* Slightly more compact */
+    background: rgba(10, 25, 47, 0.9);
+    border: 1px solid var(--accent-cyan);
+    border-top: none;
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.update-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.update-label {
+    display: block; /* Show the label again */
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.update-time {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--accent-cyan);
+}
+
+.update-next-time {
+    font-size: 1.1rem;
+    color: var(--accent-green);
+    font-weight: bold;
+}
+
+.update-next-time .unit {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-left: 2px;
+}
+
+.update-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(100, 255, 218, 0.3);
+    transform: skewX(-15deg); /* Sci-fi angle */
+}
+
+/* Remove old styles */
+/* .dashboard-grid ... kept as is */
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: 25% 45% 30%;
@@ -559,4 +623,18 @@ body {
 .roster-grid::-webkit-scrollbar-thumb {
     background: var(--accent-cyan);
     border-radius: 4px;
+}
+
+/* Typewriter Effect */
+.typewriter-cursor {
+    display: inline-block;
+    color: var(--accent-green);
+    margin-left: 2px;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }

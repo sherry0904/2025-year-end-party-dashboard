@@ -37,6 +37,17 @@
 
     <!-- Main App -->
     <div id="app" v-cloak>
+        <div class="update-indicator">
+            <div class="update-group">
+                <div class="update-label">最後更新</div>
+                <div class="update-time">{{ lastUpdateTime }}</div>
+            </div>
+            <div class="update-divider"></div>
+            <div class="update-group">
+                <div class="update-label">下次更新</div>
+                <div class="update-next-time">{{ secondsUntilNext }}<span class="unit">秒</span></div>
+            </div>
+        </div>
         <div class="dashboard-grid">
 
             <!-- Left Panel: Access Log -->
@@ -87,12 +98,12 @@
                 </div>
                 <div class="wish-list">
                     <transition-group name="list-slide-up" tag="div" class="wish-stack">
-                        <div v-for="wish in wishStack" :key="wish.id" class="wish-card">
+                        <div v-for="(wish, index) in wishStack" :key="wish.id" class="wish-card">
                             <div class="wish-header">
                                 <span class="wish-from">{{ wish.title }}</span>
                             </div>
                             <div class="wish-body">
-                                {{ wish.message }}
+                                <typewriter :text="wish.message" :show-cursor="index === 0"></typewriter>
                             </div>
                         </div>
                     </transition-group>
@@ -131,7 +142,7 @@
                 </div>
                 <div class="roster-grid">
                     <div v-for="emp in filteredRoster" :key="emp.id" class="roster-card"
-                        :class="{ 'arrived': processedIds.has(emp.id), 'missing': !processedIds.has(emp.id) }">
+                        :class="{ 'arrived': processedIds.has(String(emp.id)), 'missing': !processedIds.has(String(emp.id)) }">
                         <div class="card-left">
                             <span class="roster-id">{{ emp.id }}</span>
                             <span class="roster-name">{{ emp.name }}</span>
