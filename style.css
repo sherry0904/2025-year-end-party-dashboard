@@ -222,15 +222,15 @@ body {
 .radar-container {
     position: relative;
     width: 80%;
-    aspect-ratio: 1;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
 .radar-circle {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 1;
     border-radius: 50%;
     border: 2px solid var(--glass-border);
     position: relative;
@@ -286,33 +286,70 @@ body {
     color: var(--text-primary);
     text-shadow: 0 0 20px var(--accent-cyan);
     line-height: 1;
-    margin-bottom: 10px;
+}
+
+/* 統計資訊容器（在雷達圓圈下方） */
+.radar-stats {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
 
 .attendance-ratio {
     font-family: var(--font-mono);
-    font-size: 1.5rem;
-    color: var(--text-secondary);
+    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.3);
     letter-spacing: 2px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 5px 15px;
-    border-radius: 20px;
-    border: 1px solid rgba(100, 255, 218, 0.2);
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .attendance-ratio .current {
-    color: var(--accent-green);
-    font-weight: bold;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: normal;
 }
 
 .attendance-ratio .divider {
-    color: var(--text-secondary);
-    margin: 0 5px;
+    color: rgba(255, 255, 255, 0.25);
 }
 
 .attendance-ratio .total {
-    color: var(--accent-cyan);
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.attendance-percentage {
+    font-family: var(--font-mono);
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--accent-green);
+    text-shadow: 0 0 20px var(--accent-green), 0 0 40px rgba(0, 255, 127, 0.5);
+    letter-spacing: 2px;
+    display: inline-block;
+    position: relative; /* 為了讓絕對定位的 % 參考 */
+    animation: glow-pulse 2s ease-in-out infinite;
+    /* 確保數字本身是置中的關鍵 */
+    text-align: center; 
+    line-height: 1;
+}
+
+.attendance-percentage .unit {
+    position: absolute;
+    bottom: 0; /* 下標位置，對齊基線 */
+    right: -25px; /* 掛在右邊外面 */
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        text-shadow: 0 0 20px var(--accent-green), 0 0 40px rgba(0, 255, 127, 0.5);
+    }
+    50% {
+        text-shadow: 0 0 30px var(--accent-green), 0 0 60px rgba(0, 255, 127, 0.7);
+    }
 }
 
 .pulse {

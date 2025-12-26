@@ -153,6 +153,11 @@ const app = createApp({
             });
         });
 
+        const attendancePercentage = computed(() => {
+            if (roster.value.length === 0) return 0;
+            return ((totalCount.value / roster.value.length) * 100).toFixed(1);
+        });
+
         // --- Logic ---
         const closeAdminModal = () => {
             showAdminModal.value = false;
@@ -446,6 +451,7 @@ const app = createApp({
             filteredRoster,
             processedIds,
             missingCount,
+            attendancePercentage,
             searchTerm,
             sortBy,
             closeAdminModal,

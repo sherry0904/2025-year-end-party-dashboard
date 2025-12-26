@@ -83,12 +83,16 @@
                         <div class="radar-content">
                             <div class="label">CREW ONBOARD</div>
                             <div class="count" ref="countRef">{{ animatedCount }}</div>
-                            <div class="attendance-ratio">
-                                <span class="current">{{ totalCount }}</span>
-                                <span class="divider">/</span>
-                                <span class="total">{{ roster.length }}</span>
-                            </div>
                         </div>
+                    </div>
+                    <!-- 統計資訊（在圓圈外） -->
+                    <div class="radar-stats">
+                        <div class="attendance-ratio">
+                            <span class="current">{{ totalCount }}</span>
+                            <span class="divider">/</span>
+                            <span class="total">{{ roster.length }}</span>
+                        </div>
+                        <div class="attendance-percentage">{{ attendancePercentage }}<span class="unit">%</span></div>
                     </div>
                 </div>
             </section>
