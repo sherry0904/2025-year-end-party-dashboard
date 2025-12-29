@@ -3,7 +3,7 @@ import { createApp, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 // 系統設定
 const CONFIG = {
     apiUrl: 'https://script.google.com/macros/s/AKfycbzhmMw3kE7U8Z1isIVPv50Z9oKTWfCxKg2HuZhC4GpFIeg-2LK8L0Gne-U-ggyhX88R/exec', // Google Apps Script API 網址
-    pollingIntervalMs: 5000,              // API 輪詢間隔（毫秒）
+    pollingIntervalMs: 7000,              // API 輪詢間隔（毫秒）
     countdownStepMs: 1000,                // 倒數計時更新頻率（毫秒）
     messageRotationIntervalMs: 3000,      // 留言輪播間隔（毫秒）
     messageIdleThresholdMs: 3000,         // 判定閒置時間門檻（毫秒）
@@ -235,27 +235,38 @@ const app = createApp({
             XLSX.writeFile(wb, `attendance_list_${timestamp}.xlsx`);
         };
 
-
-
-        // 1. Fetch Data from API
-        const fetchData = async () => {
+        // 1. Fetch Data from API (JSONP Mode)
+        const fetchData = () => {
             if (isFetching) return;
-            resetCountdown();
             isFetching = true;
 
-            try {
-                const bustUrl = CONFIG.apiUrl + (CONFIG.apiUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
-                const response = await fetch(bustUrl);
-                const data = await response.json();
+            // 定義一個全域函式供 GAS 呼叫
+            window.handleGASResponse = function(data) {
                 processData(data);
-                
                 const now = new Date();
                 lastUpdateTime.value = now.toLocaleTimeString('zh-TW', { hour12: false });
-            } catch (error) {
-                console.error('API Fetch Error:', error);
-            } finally {
+                cleanup();
+            };
+
+            const script = document.createElement('script');
+            // callback=handleGASResponse 是關鍵
+            const bustUrl = `${CONFIG.apiUrl}${CONFIG.apiUrl.includes('?') ? '&' : '?'}callback=handleGASResponse&t=${Date.now()}`;
+            script.src = bustUrl;
+
+            // 清理機制
+            const cleanup = () => {
+                if (script.parentNode) script.parentNode.removeChild(script);
                 isFetching = false;
-            }
+                resetCountdown();
+                delete window.handleGASResponse;
+            };
+
+            script.onerror = () => {
+                console.error('JSONP Fetch Error');
+                cleanup();
+            };
+
+            document.head.appendChild(script);
         };
 
         // 2. Process Data (Diffing)
