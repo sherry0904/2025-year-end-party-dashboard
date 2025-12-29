@@ -482,6 +482,28 @@ body {
     display: flex;
     gap: 15px;
     align-items: center;
+    flex-wrap: wrap; /* Allow wrapping on medium screens */
+    justify-content: flex-end; /* Align right */
+}
+
+/* Ensure controls don't shrink too much */
+.sort-controls, .export-btn, .sheet-link-btn {
+    flex-shrink: 0;
+}
+
+/* Search Input */
+.admin-search {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--accent-cyan);
+    color: var(--text-primary);
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    width: 250px;
+    /* Prevent overflow on smaller screens where it might not wrap yet */
+    max-width: 100%; 
+    box-sizing: border-box;
 }
 
 .admin-header h2 {
@@ -523,6 +545,108 @@ body {
 .admin-search:focus {
     outline: none;
     box-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+}
+
+/* Export Button - Updated to match Sheet Link Button */
+.export-btn {
+    background: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-family: var(--font-header);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.export-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(100, 255, 218, 0.05);
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+    /* Remove original active style if present */
+    transform: none; 
+}
+
+/* Original export-btn active state removal if any specific overrides needed */
+
+/* Sheet Link Button */
+.sheet-link-btn {
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-family: var(--font-header);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex; /* Ensure alignment if we add icon later */
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.sheet-link-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(100, 255, 218, 0.05);
+    box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+}
+
+/* Responsive Admin Header */
+@media (max-width: 768px) {
+    .admin-modal {
+        padding: 20px; /* Reduce padding on small screens */
+        width: 95%;     /* Use more width */
+        max-height: 90vh; /* Ensure modal fits in viewport height */
+    }
+
+    .admin-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+        height: auto;
+        position: relative; /* For close button absolute positioning context */
+    }
+
+    .header-right {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        padding-right: 0; /* Remove right padding to use full width */
+    }
+
+    .sort-controls, .export-btn, .sheet-link-btn {
+        flex-grow: 1;
+        text-align: center;
+        justify-content: center;
+        /* Ensure buttons don't get too small */
+        min-width: 120px; 
+    }
+
+    .admin-search {
+        width: 100%;
+        order: 5; /* Push to bottom of flex container */
+        margin-top: 5px;
+        /* Ensure it doesn't overflow */
+        box-sizing: border-box; 
+        max-width: 100%;
+    }
+
+    .close-btn {
+        position: absolute;
+        top: -10px;    /* Move up slightly */
+        right: -10px;  /* Move right slightly */
+        background: var(--glass-bg); /* Add background to stand out */
+        z-index: 10;   /* Ensure it's on top */
+        width: 30px;   /* Smaller close button */
+        height: 30px;
+        font-size: 1rem;
+    }
 }
 
 /* Sort Controls */
@@ -580,6 +704,8 @@ body {
 .roster-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Wider for horizontal layout */
+    grid-auto-rows: max-content; /* Ensure rows don't stretch */
+    align-content: start; /* Pack rows at the top */
     gap: 10px;
     overflow-y: auto;
     padding-right: 10px;

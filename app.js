@@ -278,7 +278,30 @@ const app = createApp({
                  });
 
                  if (toRemove.length > 0) {
+                     // 1. Remove from processedIds
                      toRemove.forEach(id => processedIds.value.delete(id));
+                     
+                     // 2. Remove associated messages from history pool (allMessages)
+                     // Message ID format: "employeeId_timestamp"
+                     const idsToRemoveSet = new Set(toRemove);
+                     let msgWriteIdx = 0;
+                     for (let i = 0; i < allMessages.length; i++) {
+                         const originalId = allMessages[i].id.split('_')[0];
+                         if (!idsToRemoveSet.has(originalId)) {
+                             allMessages[msgWriteIdx++] = allMessages[i];
+                         }
+                     }
+                     allMessages.length = msgWriteIdx;
+
+                     // 3. Remove from current display (wishStack)
+                     wishStack.value = wishStack.value.filter(msg => {
+                         const originalId = msg.id.startsWith('replay_') 
+                             ? msg.id.substring(7).split('_')[0] 
+                             : msg.id.split('_')[0];
+                         return !idsToRemoveSet.has(originalId);
+                     });
+
+                     // 4. Update counts
                      const newCount = processedIds.value.size;
                      totalCount.value = newCount;
                      animatedCount.value = newCount;

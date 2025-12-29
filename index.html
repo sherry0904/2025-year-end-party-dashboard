@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Year-End Party Dashboard</title>
+    <title>威鋒啟航登船報到系統</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -143,6 +144,8 @@
                                 @click="sortBy = 'id'">ID</button>
                         </div>
                         <button class="export-btn" @click="exportExcel">匯出 EXCEL</button>
+                        <a href="https://docs.google.com/spreadsheets/d/1ZcczJHDqdIj8U8E-e6o-yCZixBlxtWYRfFOtTVgDL2E/edit?usp=sharing"
+                            target="_blank" class="sheet-link-btn">GOOGLE SHEET</a>
                         <input type="text" v-model="searchTerm" placeholder="Search Name/ID/Dept..."
                             class="admin-search">
                         <button class="close-btn" @click="closeAdminModal">X</button>
