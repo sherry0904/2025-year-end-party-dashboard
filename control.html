@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽獎後台控制</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Inline styles for Control Panel overrides -->
+    <style>
+        body {
+            overflow: auto;
+            background: #020c1b;
+            /* Main Dark Navy */
+            font-family: 'Share Tech Mono', monospace;
+            padding: 20px;
+        }
+
+        .control-layout {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .control-card {
+            background: rgba(17, 34, 64, 0.9);
+            /* Lighter Navy */
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            /* Cyan border */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            font-size: 1.2rem;
+            background: rgba(2, 12, 27, 0.8);
+            border: 1px solid rgba(100, 255, 218, 0.5);
+            color: #64ffda;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.4);
+        }
+
+        .btn-draw {
+            background: rgba(10, 255, 0, 0.2);
+            color: #0aff00;
+            border: 1px solid #0aff00;
+            padding: 0 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-draw:hover {
+            background: rgba(10, 255, 0, 0.4);
+            box-shadow: 0 0 15px rgba(10, 255, 0, 0.3);
+        }
+
+        .suggestion-list {
+            list-style: none;
+            background: #112240;
+            border: 1px solid #233554;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .suggestion-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #233554;
+            color: #8892b0;
+        }
+
+        .suggestion-item:hover {
+            background: #233554;
+            color: #64ffda;
+        }
+
+        .suggestion-item.active {
+            background: rgba(100, 255, 218, 0.2);
+            color: #64ffda;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            color: #64ffda;
+            font-size: 1.1rem;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.1);
+            padding-bottom: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            background: #112240;
+            color: white;
+            border: 1px solid #64ffda;
+            border-radius: 4px;
+        }
+
+        button.delete-btn {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button.delete-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* New Nav Controls */
+        .prize-nav {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+            margin-bottom: 10px;
+        }
+
+        .prize-select {
+            flex-grow: 1;
+            margin-bottom: 0 !important;
+            /* Override default select margin */
+        }
+
+        .nav-btn {
+            background: #1e293b;
+            color: #64ffda;
+            border: 1px solid #64ffda;
+            padding: 0 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: inherit;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-btn:hover {
+            background: rgba(100, 255, 218, 0.1);
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+        }
+
+        .close-anim-btn {
+            background: rgba(2, 12, 27, 0.5);
+            border: 1px solid #94a3b8;
+            color: #94a3b8;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-anim-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+    </style>
+    <script type="importmap">
+        { "imports": { "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js" } }
+    </script>
+</head>
+
+<body class="control-body">
+    <div id="app" v-cloak class="control-layout">
+
+        <!-- HEADER -->
+        <header
+            style="text-align: center; padding: 20px 0; border-bottom: 2px solid rgba(100, 255, 218, 0.3); margin-bottom: 20px;">
+            <h1
+                style="margin: 0; font-size: 2.5rem; background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 3px;">
+                🎰 抽獎控制台
+            </h1>
+            <div style="margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <div style="color: #64ffda; font-size: 0.9rem;">
+                    <span v-if="!isMockMode">● 已連線 Firebase</span>
+                    <span v-else style="color: #fca5a5;">⚠️ 離線模擬模式</span>
+                </div>
+                <button @click="showOverview = true"
+                    style="padding: 8px 16px; background: rgba(100, 255, 218, 0.1); border: 1px solid #64ffda; color: #64ffda; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(100, 255, 218, 0.2)'"
+                    onmouseout="this.style.background='rgba(100, 255, 218, 0.1)'">
+                    📊 查看全獎項總覽
+                </button>
+                <button @click="resetSystem" v-if="!isMockMode"
+                    style="padding: 8px 16px; background: rgba(255, 67, 103, 0.1); border: 1px solid #ff4367; color: #ff4367; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255, 67, 103, 0.2)'"
+                    onmouseout="this.style.background='rgba(255, 67, 103, 0.1)'">
+                    🔄 重置系統
+                </button>
+            </div>
+        </header>
+
+        <!-- TOP: Prize Selection -->
+        <div class="control-card">
+            <h2>目前獎項設定</h2>
+            <div class="prize-nav">
+                <button class="nav-btn" @click="prevPrize">◀ 上一個</button>
+                <select v-model="selectedPrizeId" @change="changePrize" class="prize-select">
+                    <option v-for="p in store.prizes" :value="p.id">{{ p.name }} ({{ p.count }}名)</option>
+                </select>
+                <button class="nav-btn" @click="nextPrize">下一個 ▶</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <button class="close-anim-btn" @click="forceCloseAnimation">⏹ 強制關閉動畫</button>
+                <div style="color: #8892b0; font-size: 0.9rem;">
+                    目前進度: <span style="color: #64ffda; font-weight: bold;">{{ currentWinners.length }}</span> / {{
+                    currentPrize.count }}
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN: Input -->
+        <div class="control-card">
+            <h2>抽獎操作 (輸入分機或姓名)</h2>
+            <div class="input-group">
+                <input type="text" v-model="inputText" @input="handleInput" @keydown.enter="confirmDraw"
+                    @keydown.down="moveSelection(1)" @keydown.up="moveSelection(-1)" placeholder="輸入 8801 或 王小明..."
+                    ref="inputRef" autofocus>
+                <button class="btn-draw" @click="confirmDraw">抽 獎</button>
+            </div>
+
+            <!-- Auto-complete Suggestions -->
+            <ul v-if="suggestions.length > 0" class="suggestion-list">
+                <li v-for="(item, index) in suggestions" :key="item.id || index" class="suggestion-item"
+                    :class="{ active: index === selectedIndex }" @click="selectCandidate(item)">
+                    <span v-if="item.id" style="color: #64ffda">{{ item.id }}</span>
+                    <span v-else style="color: #fca5a5">[無分機]</span>
+                    - {{ item.name }} ({{ item.dept }})
+                </li>
+            </ul>
+        </div>
+
+        <!-- BOTTOM: History -->
+        <div class="control-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">本獎項得獎名單 (最新在下)</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="delete-btn" @click="deleteSelected" :disabled="selectedWinners.length === 0"
+                        style="opacity: selectedWinners.length === 0 ? 0.5 : 1;">
+                        🗑️ 刪除已選 ({{ selectedWinners.length }})
+                    </button>
+                    <button class="delete-btn" @click="clearAllCurrentPrize" :disabled="currentWinners.length === 0"
+                        style="opacity: currentWinners.length === 0 ? 0.5 : 1; background: #dc2626; color: white; border-color: #dc2626;">
+                        ⚠️ 清空本獎項
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="currentWinners.length === 0" style="color: #8892b0; font-style: italic;">
+                尚未抽出任何人
+            </div>
+
+            <div v-else>
+                <label
+                    style="display: flex; align-items: center; padding: 8px; border-bottom: 2px solid rgba(100, 255, 218, 0.2); color: #64ffda; cursor: pointer;">
+                    <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"
+                        style="margin-right: 10px; cursor: pointer;">
+                    <strong>全選 / 取消全選</strong>
+                </label>
+                <ul style="list-style: none; padding: 0; max-height: 400px; overflow-y: auto;">
+                    <li v-for="w in currentWinners" :key="w.timestamp"
+                        style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(100, 255, 218, 0.1);">
+                        <label style="display: flex; align-items: center; flex: 1; cursor: pointer;">
+                            <input type="checkbox" :value="w.timestamp" v-model="selectedWinners"
+                                style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: #e6f1ff">
+                                <span style="color: #64ffda; margin-right:5px;">{{ w.id || '-' }}</span>
+                                {{ w.name }} <span style="font-size: 0.8em; color: #8892b0;">({{ w.dept }})</span>
+                            </span>
+                        </label>
+                        <button class="delete-btn" @click="removeWinner(w)">刪除</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- OVERVIEW MODAL -->
+        <div v-if="showOverview" @click="showOverview = false"
+            style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px);">
+
+            <div @click.stop
+                style="background: #0a192f; border: 2px solid #64ffda; border-radius: 8px; max-width: 900px; max-height: 80vh; overflow-y: auto; padding: 30px; position: relative;">
+                <button @click="showOverview = false"
+                    style="position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #64ffda; color: #64ffda; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;"
+                    onmouseover="this.style.background='rgba(100, 255, 218, 0.2)'"
+                    onmouseout="this.style.background='transparent'">
+                    ✕
+                </button>
+
+                <h2
+                    style="margin: 0 0 25px 0; color: #e6f1ff; font-size: 2rem; border-bottom: 2px solid #64ffda; padding-bottom: 15px;">
+                    📊 全獎項總覽
+                </h2>
+
+                <div v-for="prize in store.prizes" :key="prize.id"
+                    style="margin-bottom: 20px; padding: 20px; background: rgba(100, 255, 218, 0.05); border-left: 4px solid var(--accent-cyan); border-radius: 6px;">
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; color: #e6f1ff; font-size: 1.3rem;">{{ prize.name }}</h3>
+                        <div style="color: #8892b0; font-size: 1rem;">
+                            已抽: <span
+                                :style="{ color: getWinnersForPrize(prize.id).length >= prize.count ? '#64ffda' : '#fca5a5', fontWeight: 'bold', fontSize: '1.1rem' }">
+                                {{ getWinnersForPrize(prize.id).length }}
+                            </span> / {{ prize.count }}
+                        </div>
+                    </div>
+
+                    <div v-if="getWinnersForPrize(prize.id).length === 0"
+                        style="color: #8892b0; font-style: italic; font-size: 0.95rem; padding: 10px;">
+                        尚未抽出
+                    </div>
+                    <div v-else style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <span v-for="w in getWinnersForPrize(prize.id)" :key="w.timestamp"
+                            style="background: rgba(100, 255, 218, 0.15); padding: 8px 14px; border-radius: 6px; font-size: 0.95rem; color: #e6f1ff; border: 1px solid rgba(100, 255, 218, 0.3);">
+                            <span style="color: #64ffda; font-weight: bold;">{{ w.id || '-' }}</span> {{ w.name }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { createApp, ref, computed, onMounted, watch } from 'vue';
+        import { store, actions, fetchRoster, isMockMode, db, rtdb } from './lottery.js';
+
+        createApp({
+            setup() {
+                const roster = ref([]);
+                const inputText = ref('');
+                const suggestions = ref([]);
+                const selectedIndex = ref(-1);
+                const inputRef = ref(null);
+                const selectedPrizeId = ref(store.value.currentPrize.id);
+                const selectedWinners = ref([]); // Array of timestamps
+                const showOverview = ref(false); // Toggle for overview panel
+
+                // Helper function for overview panel
+                function getWinnersForPrize(prizeId) {
+                    return store.value.winners.filter(w => w.prizeId === prizeId);
+                }
+
+                onMounted(async () => {
+                    roster.value = await fetchRoster();
+                });
+
+                // Sync local selection with Firebase store state
+                watch(() => store.value.currentPrize, (newPrize) => {
+                    if (newPrize && newPrize.id) {
+                        selectedPrizeId.value = newPrize.id;
+                    }
+                }, { immediate: true });
+
+                const currentPrize = computed(() => {
+                    return store.value.prizes.find(p => p.id === selectedPrizeId.value) || store.value.prizes[0];
+                });
+
+                const currentWinners = computed(() => {
+                    return store.value.winners.filter(w => w.prizeId === currentPrize.value.id);
+                });
+
+                const changePrize = () => {
+                    const prize = store.value.prizes.find(p => p.id === selectedPrizeId.value);
+                    actions.setPrize(prize);
+                };
+
+                const prevPrize = () => {
+                    const idx = store.value.prizes.findIndex(p => p.id === selectedPrizeId.value);
+                    if (idx > 0) {
+                        selectedPrizeId.value = store.value.prizes[idx - 1].id;
+                        changePrize();
+                    }
+                };
+
+                const nextPrize = () => {
+                    const idx = store.value.prizes.findIndex(p => p.id === selectedPrizeId.value);
+                    if (idx < store.value.prizes.length - 1) {
+                        selectedPrizeId.value = store.value.prizes[idx + 1].id;
+                        changePrize();
+                    }
+                };
+
+                const forceCloseAnimation = () => {
+                    actions.resetAnimation();
+                };
+
+                const removeWinner = (winner) => {
+                    actions.removeWinner(winner);
+                    // Remove from selection if it was selected
+                    selectedWinners.value = selectedWinners.value.filter(ts => ts !== winner.timestamp);
+                };
+
+                const isAllSelected = computed(() => {
+                    return currentWinners.value.length > 0 &&
+                        selectedWinners.value.length === currentWinners.value.length;
+                });
+
+                const toggleSelectAll = () => {
+                    if (isAllSelected.value) {
+                        selectedWinners.value = [];
+                    } else {
+                        selectedWinners.value = currentWinners.value.map(w => w.timestamp);
+                    }
+                };
+
+                const deleteSelected = () => {
+                    if (selectedWinners.value.length === 0) return;
+
+                    const confirmed = confirm(`確定要刪除已選的 ${selectedWinners.value.length} 位得獎者嗎？`);
+                    if (!confirmed) return;
+
+                    const toDelete = currentWinners.value.filter(w => selectedWinners.value.includes(w.timestamp));
+                    toDelete.forEach(winner => actions.removeWinner(winner));
+                    selectedWinners.value = [];
+                };
+
+                const clearAllCurrentPrize = () => {
+                    if (currentWinners.value.length === 0) return;
+
+                    const confirmed = confirm(`⚠️ 確定要清空「${currentPrize.value.name}」的所有 ${currentWinners.value.length} 位得獎者嗎？\n\n此操作無法復原！`);
+                    if (!confirmed) return;
+
+                    currentWinners.value.forEach(winner => actions.removeWinner(winner));
+                    selectedWinners.value = [];
+                };
+
+                const resetSystem = async () => {
+                    const confirmed = confirm('⚠️ 確定要重置整個抽獎系統嗎？\n\n這將會：\n1. 清除所有中獎紀錄\n2. 重設為第一個獎項\n3. 同步最新獎項列表到 Firebase\n\n此操作無法復原！');
+                    if (!confirmed) return;
+
+                    if (!isMockMode && rtdb) {
+                        // Clear all winners
+                        await rtdb.set(rtdb.ref(db, 'winners'), null);
+
+                        // Reset to first prize
+                        const firstPrize = store.value.prizes[0];
+                        await rtdb.update(rtdb.ref(db, 'status'), {
+                            currentPrize: firstPrize,
+                            uiState: { isAnimating: false, lastWinner: null }
+                        });
+
+                        // Sync prizes to Firebase
+                        await rtdb.set(rtdb.ref(db, 'prizes'), store.value.prizes);
+
+                        alert('✅ 系統已重置！請重新整理抽獎大螢幕。');
+                        selectedWinners.value = [];
+                    }
+                };
+
+                const handleInput = () => {
+                    const val = inputText.value.trim().toLowerCase();
+                    if (!val) {
+                        suggestions.value = [];
+                        return;
+                    }
+
+                    suggestions.value = roster.value.filter(emp => {
+                        const idMatch = emp.id && String(emp.id).includes(val);
+                        const nameMatch = emp.name.toLowerCase().includes(val);
+                        return idMatch || nameMatch;
+                    }).slice(0, 5);
+
+                    selectedIndex.value = 0;
+                };
+
+                const moveSelection = (step) => {
+                    if (suggestions.value.length === 0) return;
+                    selectedIndex.value = (selectedIndex.value + step + suggestions.value.length) % suggestions.value.length;
+                };
+
+                const selectCandidate = (candidate) => {
+                    if (!candidate) return;
+                    actions.addWinner(candidate);
+                    inputText.value = '';
+                    suggestions.value = [];
+                    inputRef.value.focus();
+                };
+
+                const confirmDraw = () => {
+                    if (suggestions.value.length > 0) {
+                        selectCandidate(suggestions.value[selectedIndex.value]);
+                    } else if (inputText.value.trim()) {
+                        alert("找不到此人，請確認輸入正確，或是直接點選清單 (若為無分機人員，請輸入名字搜尋)");
+                    }
+                };
+
+                return {
+                    store,
+                    isMockMode,
+                    roster,
+                    inputText,
+                    suggestions,
+                    selectedIndex,
+                    selectedPrizeId,
+                    currentPrize,
+                    currentWinners,
+                    handleInput,
+                    moveSelection,
+                    selectCandidate,
+                    confirmDraw,
+                    changePrize,
+                    prevPrize,
+                    nextPrize,
+                    forceCloseAnimation,
+                    removeWinner,
+                    inputRef,
+                    selectedWinners,
+                    isAllSelected,
+                    toggleSelectAll,
+                    deleteSelected,
+                    clearAllCurrentPrize,
+                    showOverview,
+                    getWinnersForPrize,
+                    resetSystem
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尾牙抽獎大螢幕</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lottery.css">
+
+    <!-- Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+</head>
+
+<body>
+    <div id="tsparticles"></div>
+
+    <div id="app" v-cloak class="lottery-container">
+        <!-- HEADER -->
+        <header class="lottery-header">
+            <h1 class="prize-title">{{ store.currentPrize.name }}</h1>
+            <div class="prize-stats">
+                已抽出: <span class="highlight">{{ currentPrizeWinners.length }}</span>
+                / 共 <span class="total">{{ store.currentPrize.count }}</span> 位
+            </div>
+            <div v-if="store.currentPrize.presenter"
+                style="margin-top: 10px; font-size: 1.1rem; color: #BF953F; letter-spacing: 2px;">
+                頒獎人：<span style="font-weight: bold; color: #FCF6BA;">{{ store.currentPrize.presenter }}</span>
+            </div>
+        </header>
+
+        <!-- MAIN STAGE (Animation) -->
+        <div class="main-stage" :class="{ 'animating': store.uiState.isAnimating }">
+            <!-- 待機畫面 / 列表 -->
+            <transition name="fade" mode="out-in">
+                <div v-if="!store.uiState.isAnimating" class="winners-grid" :class="gridSizeClass" key="grid">
+                    <div v-for="winner in currentPrizeWinners" :key="winner.timestamp" class="winner-card small">
+                        <div class="dept">{{ winner.dept }}</div>
+                        <div class="name">{{ winner.name }}</div>
+                        <div class="id">{{ winner.id }}</div>
+                    </div>
+                    <!-- Empty Slots Placeholders -->
+                    <div v-for="n in remainingSlots" :key="'empty'+n" class="winner-card empty">
+                        ?
+                    </div>
+                </div>
+
+                <!-- 抽中動畫 (全螢幕蓋版) -->
+                <div v-else class="winner-reveal" key="reveal">
+                    <div class="reveal-content">
+                        <div class="congrats-label">CONGRATULATIONS</div>
+                        <div class="winner-dept">{{ store.uiState.lastWinner?.dept }}</div>
+                        <div class="winner-name">{{ store.uiState.lastWinner?.name }}</div>
+                        <div class="winner-id">{{ store.uiState.lastWinner?.id }}</div>
+                    </div>
+                    <div class="lights"></div>
+                </div>
+            </transition>
+        </div>
+
+        <!-- FIREBASE STATUS -->
+        <div class="connection-status" :class="{ 'offline': isMockMode }">
+            {{ isMockMode ? '模擬模式 (未連線)' : '● LIVE' }}
+        </div>
+    </div>
+
+    <script type="module">
+        import { createApp, computed, onMounted, watch } from 'vue';
+        import { store, isMockMode } from './lottery.js';
+
+        createApp({
+            setup() {
+                // Computed
+                const currentPrizeWinners = computed(() => {
+                    return store.value.winners.filter(w => w.prizeId === store.value.currentPrize.id);
+                });
+
+                const remainingSlots = computed(() => {
+                    const diff = store.value.currentPrize.count - currentPrizeWinners.value.length;
+                    return diff > 0 ? diff : 0;
+                });
+
+                const gridSizeClass = computed(() => {
+                    const count = store.value.currentPrize.count;
+                    if (count === 1) return 'grid-single';   // Super huge
+                    if (count <= 4) return 'grid-quad';      // Medium large
+                    if (count <= 10) return 'grid-ten';      // Current size
+                    return 'grid-multi';                     // Many small cards
+                });
+
+                // Watch animation state to trigger GSAP effects
+                watch(() => store.value.uiState.isAnimating, (newVal) => {
+                    if (newVal) {
+                        // GSAP "Juicy" Entrance (Elastic Bounce & Stagger)
+                        nextTick(() => {
+                            // Reset initial state
+                            gsap.set(".reveal-content", { scale: 0.5, opacity: 0, y: 50 });
+                            gsap.set(".congrats-label", { scale: 0, opacity: 0, y: -20 });
+
+                            const tl = gsap.timeline();
+
+                            // Elastic Box Open
+                            tl.to(".reveal-content", {
+                                duration: 1,
+                                scale: 1,
+                                opacity: 1,
+                                y: 0,
+                                ease: "elastic.out(1, 0.5)", // Bouncy
+                                force3D: true
+                            })
+                                // Pop Label
+                                .to(".congrats-label", {
+                                    duration: 0.5,
+                                    scale: 1,
+                                    opacity: 1,
+                                    y: 0,
+                                    ease: "back.out(2)"
+                                }, "-=0.8")
+                                // Elegant Text Fade In
+                                .from(".winner-dept", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, "-=0.6")
+                                .from(".winner-name", { scale: 1.1, opacity: 0, duration: 0.5, ease: "power2.out" }, "-=0.4")
+                                .from(".winner-id", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, "-=0.3");
+                        });
+                    }
+                });
+
+                onMounted(() => {
+                    // Premium Gold Dust & Confetti
+                    tsParticles.load("tsparticles", {
+                        fpsLimit: 60,
+                        particles: {
+                            number: { value: 30 },
+                            color: { value: ["#BF953F", "#FCF6BA", "#ffffff"] }, // Champagne Gold Colors
+                            shape: { type: "circle" },
+                            opacity: { value: { min: 0.3, max: 0.7 } },
+                            size: { value: { min: 2, max: 5 } },
+                            move: {
+                                enable: true,
+                                speed: 1.5,
+                                direction: "top",
+                                outModes: "out"
+                            }
+                        },
+                        background: { color: "transparent" } // Handle BG in CSS
+                    });
+                });
+
+                return {
+                    store,
+                    isMockMode,
+                    currentPrizeWinners,
+                    remainingSlots,
+                    gridSizeClass
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
