@@ -81,6 +81,16 @@ const app = createApp({
 
 
         // --- Helpers ---
+        const normalizeId = (id) => {
+            if (!id) return '';
+            const str = String(id).trim();
+            // If purely numeric, remove leading zeros (e.g. "0062" -> "62")
+            if (/^\d+$/.test(str)) {
+                return String(parseInt(str, 10));
+            }
+            return str;
+        };
+
         const resetCountdown = () => {
             secondsUntilNext.value = Math.max(1, Math.round(CONFIG.pollingIntervalMs / 1000));
         };
@@ -131,7 +141,7 @@ const app = createApp({
 
             // 1. Filter
             if (searchTerm.value.trim()) {
-                const term = searchTerm.value.toLowerCase();
+                const term = normalizeId(searchTerm.value.toLowerCase());
                 result = result.filter(emp => 
                     emp.name.toLowerCase().includes(term) || 
                     String(emp.id).includes(term) || 
@@ -277,10 +287,10 @@ const app = createApp({
                  roster.value = data.roster;
             }
 
-            const rosterMap = new Map(roster.value.map(user => [String(user.id), user]));
+            const rosterMap = new Map(roster.value.map(user => [normalizeId(user.id), user]));
 
             if (data.checkIns) {
-                 const currentRemoteIds = new Set(data.checkIns.map(c => String(c.id)));
+                 const currentRemoteIds = new Set(data.checkIns.map(c => normalizeId(c.id)));
                  const toRemove = [];
                  processedIds.value.forEach(id => {
                      if (!currentRemoteIds.has(id)) {
@@ -330,7 +340,7 @@ const app = createApp({
                 });
 
                 data.checkIns.forEach(checkIn => {
-                    const idStr = String(checkIn.id);
+                    const idStr = normalizeId(checkIn.id);
                     if (!processedIds.value.has(idStr)) {
                         processedIds.value.add(idStr); 
                         let userInfo = rosterMap.get(idStr);

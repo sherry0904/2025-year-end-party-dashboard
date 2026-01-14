@@ -478,15 +478,25 @@
                 };
 
                 const handleInput = () => {
-                    const val = inputText.value.trim().toLowerCase();
-                    if (!val) {
+                    const rawVal = inputText.value.trim().toLowerCase();
+                    if (!rawVal) {
                         suggestions.value = [];
                         return;
                     }
 
+                    // Normalize input for ID matching (e.g. "00" -> "0", "0062" -> "62")
+                    // We also keep rawVal for name matching or partial matches
+                    let normalizedVal = rawVal;
+                     if (/^\d+$/.test(rawVal)) {
+                        normalizedVal = String(parseInt(rawVal, 10));
+                    }
+
                     suggestions.value = roster.value.filter(emp => {
-                        const idMatch = emp.id && String(emp.id).includes(val);
-                        const nameMatch = emp.name.toLowerCase().includes(val);
+                        const idStr = String(emp.id);
+                        // Match normalized input against ID (exact or partial if normalizedVal is significant)
+                        // Or match raw input against ID (for standard contains)
+                        const idMatch = emp.id && (idStr.includes(rawVal) || idStr.includes(normalizedVal));
+                        const nameMatch = emp.name.toLowerCase().includes(rawVal);
                         return idMatch || nameMatch;
                     }).slice(0, 5);
 
